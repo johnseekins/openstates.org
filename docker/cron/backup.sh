@@ -39,9 +39,14 @@ aws s3 cp --acl public-read public.pgdump "s3://data.openstates.org/postgres/dai
 [ "$(date +%d)" -eq 1 ] && aws s3 cp --acl public-read public.pgdump "s3://data.openstates.org/postgres/monthly/$(date +%Y-%m)-public.pgdump" > /dev/null
 rm -f public.pgdump
 
-# Currently disabled because it requires different credentials
-#echo "Extracting geo backup..."
-#pg_dump -Fc geo > openstates-geo.pgdump
-#echo "Shipping full backup to s3"
-#aws s3 cp openstates-geo.pgdump "s3://openstates-backups/full-backup/$(date +%Y-%m-%d)-openstates-geo.pgdump" > /dev/null
-#rm -f openstates-geo.pgdump
+if [ -n "${GEOUSER}" ] && [ -n "${GEOPASSWORD}" ]; then
+	PGUSER="${GEOUSER}"
+	export PGUSER
+	PGPASSWORD="${GEOPASSWORD}"
+	export PGPASSWORD
+	echo "Extracting geo backup..."
+	pg_dump -Fc geo > openstates-geo.pgdump
+	echo "Shipping full backup to s3"
+	aws s3 cp openstates-geo.pgdump "s3://openstates-backups/full-backup/$(date +%Y-%m-%d)-openstates-geo.pgdump" > /dev/null
+	rm -f openstates-geo.pgdump
+fi
